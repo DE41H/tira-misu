@@ -1,0 +1,165 @@
+/*
+  Light: a BITS answer booklet. Blue-ruled paper, a green margin, royal-blue ink.
+  Dark: the lecture-theatre chalkboard.
+*/
+:root {
+  --paper: #f5f7fa;
+  --raised: #ffffff;
+  --ink: #1d2c5a;
+  --soft: #5d6a90;
+  --rule: #dfe6f1;
+  --rule-strong: #bccadf;
+  --margin: #2f6b4f;
+  --danger: #d13a4f;
+  --shadow: 0 1px 2px rgb(29 44 90 / 0.06), 0 12px 32px -12px rgb(29 44 90 / 0.22);
+
+  --k-course: #2c58b5;
+  --k-test: #c23149;
+  --k-due: #b06a00;
+  --k-talk: #137786;
+  --k-club: #237a53;
+  --k-hire: #6845b8;
+  --k-fest: #aa3878;
+  --k-other: #5f6b85;
+  --tint: 13%;
+  --today: 4%;
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  color-scheme: light;
+  font-family: 'Archivo', system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #18221e;
+    --raised: #202d27;
+    --ink: #e7ece4;
+    --soft: #9caea4;
+    --rule: #26332d;
+    --rule-strong: #3a4b44;
+    --margin: #4f9d74;
+    --danger: #f08a95;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 16px 40px -12px rgb(0 0 0 / 0.55);
+
+    --k-course: #8fb0f2;
+    --k-test: #f2808f;
+    --k-due: #e9b25c;
+    --k-talk: #6fcad6;
+    --k-club: #79cfa0;
+    --k-hire: #b9a2f2;
+    --k-fest: #ef93c4;
+    --k-other: #a8b3c4;
+    --tint: 20%;
+    --today: 2%;
+    color-scheme: dark;
+  }
+}
+
+[data-k='course'] { --k: var(--k-course); }
+[data-k='test'] { --k: var(--k-test); }
+[data-k='due'] { --k: var(--k-due); }
+[data-k='talk'] { --k: var(--k-talk); }
+[data-k='club'] { --k: var(--k-club); }
+[data-k='hire'] { --k: var(--k-hire); }
+[data-k='fest'] { --k: var(--k-fest); }
+[data-k='other'] { --k: var(--k-other); }
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--margin); outline-offset: 2px; border-radius: 4px; }
+::selection { background: color-mix(in srgb, var(--margin) 25%, transparent); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 2.25rem;
+  padding: 0 0.95rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 150ms, border-color 150ms, transform 120ms var(--ease);
+}
+.btn:hover { background: var(--raised); border-color: var(--soft); }
+.btn:active { transform: scale(0.96); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn.solid { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.btn.solid:hover { background: color-mix(in srgb, var(--ink) 88%, var(--paper)); }
+.btn.danger { border-color: var(--danger); color: var(--danger); }
+.btn.icon { width: 2.25rem; padding: 0; font-size: 1.05rem; }
+
+/* Waiting on the server: the label gives way to a spinner. */
+.btn[aria-busy] { position: relative; color: transparent; }
+.btn[aria-busy] > * { visibility: hidden; }
+.btn[aria-busy]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid var(--rule-strong);
+  border-top-color: var(--margin);
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+@keyframes spin { to { rotate: 1turn; } }
+
+/* Native dialogs and popovers, animated in and out with @starting-style. */
+dialog, [popover] {
+  padding: 0;
+  border: 0;
+  background: var(--raised);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+  transition: opacity 180ms var(--ease), transform 220ms var(--ease), overlay 220ms allow-discrete, display 220ms allow-discrete;
+}
+dialog[open], [popover]:popover-open { opacity: 1; transform: none; }
+@starting-style {
+  dialog[open], [popover]:popover-open { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
+dialog::backdrop {
+  background: rgb(15 25 45 / 0);
+  backdrop-filter: blur(0);
+  transition: background-color 220ms, backdrop-filter 220ms, overlay 220ms allow-discrete, display 220ms allow-discrete;
+}
+dialog[open]::backdrop { background: rgb(15 25 45 / 0.35); backdrop-filter: blur(2px); }
+@starting-style {
+  dialog[open]::backdrop { background: rgb(15 25 45 / 0); backdrop-filter: blur(0); }
+}
+
+/* Week change: the old week slides out, the new one in, toward the direction travelled. */
+::view-transition-old(week) { animation: 220ms var(--ease) both week-out; }
+::view-transition-new(week) { animation: 260ms var(--ease) both week-in; }
+::view-transition-old(title), ::view-transition-new(title) { animation-duration: 200ms; }
+@keyframes week-out { to { opacity: 0; transform: translateX(calc(var(--dir, 1) * -24px)); } }
+@keyframes week-in { from { opacity: 0; transform: translateX(calc(var(--dir, 1) * 24px)); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after, ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) {
+    animation: none !important;
+    transition: none !important;
+  }
+}
