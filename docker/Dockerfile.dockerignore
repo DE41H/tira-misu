@@ -1,7 +1,10 @@
 *
 !frontend
 !backend
+!iris
 frontend/node_modules
+iris/node_modules
 backend/pb_data
 backend/pb_public
 backend/tira
+backend/parse.js
