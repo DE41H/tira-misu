@@ -32,11 +32,9 @@ frontend/           Svelte 5 + Vite SPA, PocketBase JS SDK only
 ## Run
 
 ```bash
-make install   # frontend deps
-make dev       # backend :8090, serves last build; dashboard at /_/
-make web       # Vite :5173 with HMR, proxies /api to :8090
-make build     # frontend -> backend/pb_public, then backend/tira
-make migration name=x
+make build     # Docker builds backend/tira + backend/pb_public (needs only Docker)
+make serve     # runs backend/tira on :8090 (DOMAIN=x: HTTPS on :443); dashboard at /_/
+make clean     # go mod tidy + prune Docker build cache
 ```
 
 ## Env (`.env`, read by backend and Vite)
@@ -49,4 +47,4 @@ make migration name=x
 - Times are IST; PocketBase dates come as `"YYYY-MM-DD HH:MM:SS.sssZ"`, `toEv` converts to ISO.
 - Keep visuals unchanged unless asked; global styles in `app.css`, the rest scoped per component.
 - Smallest change that works; comment only the non-obvious why.
-- Check with `cd frontend && npm run check`, `cd backend && go vet ./...`, then `make build`.
+- Check with `cd frontend && pnpm check`, `cd backend && go vet ./...`, then `make build`.
