@@ -1,6 +1,5 @@
-backend/pb_data/
-backend/tira
-pb.log
-backend/pb_public/
-frontend/node_modules/
 .env
+pb.log
+backend/tira
+backend/pb_*/
+node_modules/
