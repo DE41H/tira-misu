@@ -1,14 +1,11 @@
-.PHONY: dev build tidy migration
+.PHONY: clean build serve
 
-dev:
-	cd backend && go run . serve
+clean:
+	cd backend && go mod tidy
+	docker builder prune -f
 
 build:
-	cd backend && go build -o tira .
+	docker build -f docker/Dockerfile --secret id=env,src=.env -o backend .
 
-tidy:
-	cd backend && go mod tidy
-
-# usage: make migration name=create_tasks
-migration:
-	cd backend && go run . migrate create $(name)
+serve:
+	cd backend && ./tira serve $(DOMAIN)
