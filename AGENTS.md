@@ -8,8 +8,8 @@ Keep this file up to date when you change structure, commands, env vars or statu
 ## Status
 
 - Done: Google sign-in, events CRUD (per-user collection rules), Iris Connect (`/api/invite`), week grid, Coming up, phone layout, browser cache of weeks.
-- Not done: Iris mail sync (old `../tiramisu/server/{sync,parse}.ts`, uses chrono-node). Until then the refresh button only reloads.
-- Not done: moving old Neon data over. No backend tests.
+- Done: Iris mail sync, a cron every 5 min for all students in one transaction (`sync.go`); the refresh button only reloads.
+- Not done: moving old Neon data over. No tests.
 
 ## Layout
 
@@ -18,14 +18,18 @@ backend/            Go, PocketBase v0.40 as a framework
   main.go           loads ../.env, registers migrations, hooks, crons
   hooks.go          Google OAuth from env, serves pb_public (SPA fallback, asset caching), event validation
   iris.go           Iris API client + /api/invite routes
-  crons.go          app.Cron() jobs (empty)
+  crons.go          app.Cron() jobs: irisSync every 5 min
+  sync.go           Iris sync: link/unlink students, parse results, dedupe + store, ack
+  parse.js          generated from iris/parse.ts (gitignored; `go generate` locally, Docker builds its own), run in goja
   migrations/       Go migrations = collection schema (users.irisUser, events); dashboard edits auto-generate new ones
+                    users has no update rule: only the server writes it (OAuth, Iris linking)
   pb_public/        frontend build output (gitignored)
 frontend/           Svelte 5 + Vite SPA, PocketBase JS SDK only
   src/Root.svelte   Welcome when signed out, lazy-loads App chunk when signed in
   src/lib/pb.svelte.ts  SDK client, auth state, event queries, record -> Ev mapping
   src/lib/cal.ts    categories, Ev type, IST date helpers, grid layout
   src/lib/local.ts  safe localStorage
+iris/               Iris plugin in data/ (plugin/schema/rules.json) + parse.ts (chrono-node); bundled into backend/parse.js
 .env                secrets (gitignored); .env.template lists the keys
 ```
 
@@ -47,4 +51,5 @@ make clean     # go mod tidy + prune Docker build cache
 - Times are IST; PocketBase dates come as `"YYYY-MM-DD HH:MM:SS.sssZ"`, `toEv` converts to ISO.
 - Keep visuals unchanged unless asked; global styles in `app.css`, the rest scoped per component.
 - Smallest change that works; comment only the non-obvious why.
+- Before `go vet` locally: `cd backend && go generate` (builds parse.js).
 - Check with `cd frontend && pnpm check`, `cd backend && go vet ./...`, then `make build`.

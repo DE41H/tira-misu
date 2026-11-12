@@ -3,3 +3,4 @@ pb.log
 backend/tira
 backend/pb_*/
 node_modules/
+backend/parse.js
