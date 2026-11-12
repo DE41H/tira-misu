@@ -1,0 +1,76 @@
+{
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "description": "Does this email announce something happening at a set date or time, and what kind of thing?",
+      "enum": [
+        "none",
+        "class",
+        "exam",
+        "paper_distribution",
+        "deadline",
+        "talk",
+        "workshop",
+        "competition",
+        "recruitment",
+        "cultural",
+        "sports",
+        "meeting",
+        "campus_service",
+        "other_event"
+      ]
+    },
+    "change": {
+      "type": "string",
+      "description": "Is this a new announcement, a change to an earlier one (new date, time or venue), a cancellation, or a reminder?",
+      "enum": [
+        "new",
+        "changed",
+        "cancelled",
+        "reminder"
+      ]
+    },
+    "audience": {
+      "type": "string",
+      "description": "Who is it for: only me or a few named people, my course or section, or everyone on campus?",
+      "enum": [
+        "me",
+        "course",
+        "everyone"
+      ]
+    },
+    "multiple": {
+      "type": "boolean",
+      "description": "Does the email list several separate events or dates, like a schedule?"
+    },
+    "title": {
+      "type": "string",
+      "nullable": true,
+      "description": "A short title for the event as a timetable entry, like 'CS F211 Midsem' or 'Quiz 2 deadline'. No greeting, sender or date. Null if there is no event."
+    },
+    "venue": {
+      "type": "string",
+      "nullable": true,
+      "description": "Where it happens, as written: room, hall or building, like 'F105' or 'Main Auditorium'. 'Online' if only online. If changed, the new place. Null if not given."
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "nullable": true,
+      "description": "The day it happens or is due, if the email writes a calendar date (a day and month). Null for only today, tomorrow or a weekday. If changed, the new date."
+    },
+    "start": {
+      "type": "string",
+      "format": "time",
+      "nullable": true,
+      "description": "Start time on a 24-hour clock, like 09:30:00 or 17:00:00. For a deadline, the due time. If changed, the new time. Null if no time is given."
+    },
+    "end": {
+      "type": "string",
+      "format": "time",
+      "nullable": true,
+      "description": "End time on a 24-hour clock, like 17:00:00. Null if no end time is given."
+    }
+  }
+}
