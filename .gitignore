@@ -1,6 +1,7 @@
 .env
 pb.log
-backend/tira
-backend/pb_*/
+backend/pocketbase
+backend/pb_data/
+backend/pb_public/
 node_modules/
-backend/parse.js
+backend/pb_hooks/parse.js
