@@ -1,0 +1,10 @@
+FROM node:26-alpine AS bundle
+WORKDIR /src
+RUN npm install chrono-node esbuild && \
+    echo "export { en } from 'chrono-node';" > entry.js && \
+    npx esbuild entry.js --bundle --minify --format=cjs --target=es2017 \
+      --banner:js="// chrono-node $(node -p "require('./node_modules/chrono-node/package.json').version") (en only), bundled for goja by make upgrade" \
+      --outfile=/out/chrono.js
+
+FROM scratch
+COPY --from=bundle /out/chrono.js /
