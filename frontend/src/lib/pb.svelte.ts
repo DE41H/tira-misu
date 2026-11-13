@@ -57,6 +57,23 @@ export const fetchUpcoming = (today: string) =>
 /** The message to show for a failed request: the first field error, or a connection problem. */
 export function why(err: ClientResponseError) {
   if (!err.status) return 'Could not reach Tiramisu. Check your connection and try again.';
-  const field = Object.values(err.response.data ?? {})[0] as { message?: string } | undefined;
-  return field?.message ?? err.response.message ?? 'Something went wrong. Try again.';
+  // Named, since the slip shows away from the form.
+  const [name, field] = (Object.entries(err.response?.data ?? {})[0] ?? []) as [string?, { message?: string }?];
+  if (name && field?.message) return `${name[0].toUpperCase()}${name.slice(1)}: ${field.message}`;
+  return err.response?.message ?? 'Something went wrong. Try again.';
+}
+
+/** Errors shown in the corner (Toasts.svelte), oldest first. Code 0: server not reached; none: no request code. */
+export const toasts = $state<{ id: number; code?: number; text: string }[]>([]);
+let seq = 0;
+/** Shows a failed request: `text`, or the server's own message. The same message twice shows once. */
+export function fail(err: unknown, text?: string) {
+  const e = err as ClientResponseError;
+  const msg = text ?? why(e);
+  if (toasts.some((t) => t.text === msg)) return;
+  toasts.push({ id: ++seq, code: e?.status, text: msg });
+}
+export function dismiss(id: number) {
+  const i = toasts.findIndex((t) => t.id === id);
+  if (i >= 0) toasts.splice(i, 1);
 }

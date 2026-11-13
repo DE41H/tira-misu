@@ -1,14 +1,14 @@
 <script lang="ts">
   import { fly } from 'svelte/transition';
   import Brand from './Brand.svelte';
-  import { pb } from './lib/pb.svelte';
+  import { fail, pb } from './lib/pb.svelte';
 
   let signingIn = $state(false);
 
   async function signIn() {
     signingIn = true;
-    // Google opens in a popup; closing it rejects, which just resets the button.
-    await pb.collection('users').authWithOAuth2({ provider: 'google' }).catch(() => {});
+    // Google opens in a popup; closing it rejects with no status, which just resets the button.
+    await pb.collection('users').authWithOAuth2({ provider: 'google' }).catch((err) => err.status && fail(err));
     signingIn = false;
   }
 </script>

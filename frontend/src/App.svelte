@@ -9,7 +9,7 @@
   import Grid from './Grid.svelte';
   import { addDays, ALL, byStart, dayName, HIDDEN_BY_DEFAULT, hours, istDay, kind, label, monday, overlaps, time, type Category, type Ev } from './lib/cal';
   import { read, write } from './lib/local';
-  import { avatar, cacheKey, fetchUpcoming, fetchWeek, pb, refreshUser, signOut } from './lib/pb.svelte';
+  import { avatar, cacheKey, fail, fetchUpcoming, fetchWeek, pb, refreshUser, signOut } from './lib/pb.svelte';
 
   let { user }: { user: RecordModel } = $props();
   const iris = import.meta.env.IRIS_URL;
@@ -36,7 +36,6 @@
   let events = $state<Ev[]>([]);
   let upcoming = $state(cached.upcoming);
   let loaded = $state(false);
-  let problem = $state('');
   const persist = () => write(key, { weeks: Object.fromEntries(weeks), upcoming });
 
   const hidden = new SvelteSet<Category>(read('hidden', HIDDEN_BY_DEFAULT));
@@ -50,7 +49,7 @@
 
   // Fast clicks start overlapping fetches and transitions; only the last week asked for may land.
   let latest = '';
-  // Which button is waiting on the server ('prev', 'next', 'today', 'refresh'), '' when none.
+  // Which button is waiting on the server ('prev', 'next', 'today'), '' when none.
   let busy = $state('');
   // Steps from the last week asked for, so quick clicks add up even before the grid catches up.
   const step = (dir: 1 | -1) => go(addDays(latest || week, dir * 7), dir, dir < 0 ? 'prev' : 'next');
@@ -68,7 +67,7 @@
         if (latest !== target) return;
       }
     }
-    const rows = await fetchWeek(target).catch(() => null);
+    const rows = await fetchWeek(target).catch((err) => (latest === target && fail(err, LOAD_FAILED), null));
     if (rows) {
       fresh.add(target);
       weeks.set(target, rows);
@@ -76,7 +75,6 @@
     }
     if (latest !== target) return;
     busy = '';
-    problem = rows ? '' : 'Could not load this week. Check your connection and reload.';
     if (rows) show(target, rows, known ? 0 : dir);
     else loaded = true;
   }
@@ -94,12 +92,14 @@
   }
 
   async function loadUpcoming() {
-    const rows = await fetchUpcoming(today).catch(() => null);
+    const rows = await fetchUpcoming(today).catch((err) => (fail(err, LOAD_FAILED), null));
     if (!rows) return;
     upcoming = rows;
     persist();
   }
 
+  const LOAD_FAILED = 'Could not load your events. Check your connection and reload.';
+  const IRIS_FAILED = 'Could not connect to Iris. Try connecting again.';
   go(start);
   loadUpcoming();
 
@@ -151,24 +151,15 @@
     outTimer = setTimeout(() => (out = false), 3000);
   }
 
-  // Re-reads the week, the upcoming list and the student (which picks up a new Iris link).
-  function refresh() {
-    fresh.clear();
-    weeks.delete(week);
-    refreshUser();
-    loadUpcoming();
-    go(week, 0, 'refresh');
-  }
-
   // Sends the student to Iris to accept the plugin; Iris sends them back with ?code=…&status=accepted|denied.
   let connecting = $state(false);
   async function connect() {
     connecting = true;
-    const body = await pb.send<{ url?: string; linked?: boolean }>('/api/invite', { method: 'POST' }).catch(() => null);
+    const body = await pb.send<{ url?: string; linked?: boolean }>('/api/invite', { method: 'POST' }).catch((err) => (fail(err, IRIS_FAILED), null));
     if (body?.url) return location.assign(body.url);
     connecting = false;
     if (body?.linked) return refreshUser();
-    problem = 'Iris did not answer. Try connecting again.';
+    if (body) fail(null, IRIS_FAILED);
   }
   {
     const q = new URLSearchParams(location.search);
@@ -181,12 +172,12 @@
           (body) => {
             connecting = false;
             if (body.linked) refreshUser();
-            else problem = 'Could not connect to Iris. Try connecting again.';
+            else fail(null, IRIS_FAILED);
           },
           // 400 (not your link) and 409 (Iris account taken) carry a message meant for the student.
           (err: ClientResponseError) => {
             connecting = false;
-            problem = err.status === 400 || err.status === 409 ? err.response.message : 'Could not connect to Iris. Try connecting again.';
+            fail(err, err.status === 400 || err.status === 409 ? err.response.message : IRIS_FAILED);
           },
         );
       }
@@ -216,16 +207,16 @@
     <div class="me">
       {#if user.irisId}
         <a class="btn iris" href={`${iris}/subscriptions/`} target="_blank" rel="noopener" title="Manage your subscription in Iris">
-          <span class="label">Connected to Iris</span>
+          <span class="label">Connected</span>
           <svg class="tick" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" /></svg>
           <svg class="go" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 11 11 5M6 5h5v5" /></svg>
         </a>
       {:else}
         <button class="btn status connect-btn" onclick={connect} disabled={connecting} aria-busy={connecting || undefined}>Connect</button>
       {/if}
-      <button class="btn icon refresh" onclick={refresh} disabled={!!busy} aria-busy={busy === 'refresh' || undefined} aria-label="Check mail" title="Check Iris for new mail">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16M20 20v-4h-4" /></svg>
-      </button>
+      <a class="btn icon gh" href="https://github.com/DE41H/tira-misu" target="_blank" rel="noopener" aria-label="Source on GitHub" title="Source on GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z" /></svg>
+      </a>
       <button class="avatar" onclick={avatarClick} onblur={() => (out = false)} data-out={out || undefined} 
         aria-label={out ? 'Confirm sign out' : `Sign out ${user.name}`} title={out ? 'Click again to sign out' : `Sign out ${user.email}`}>
         <span class="card">
@@ -251,8 +242,6 @@
     </ul>
   </div>
 
-
-  {#if problem}<p class="problem" role="alert">{problem}</p>{/if}
 
   <main class="layout">
     <Grid {days} events={shown} {today} {now} onopen={(e) => dialog?.open(e)} onnew={(d, h) => dialog?.open(null, d, h)} />
@@ -431,8 +420,9 @@
   .status { display: flex; align-items: center; gap: 0.4rem; }
   /* Sits against the margin line, avatar pushed to the far end; the arrow says it leads out to Iris. */
   .iris, .connect-btn { min-width: 0; }
-  .refresh svg { width: 1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .me .avatar { margin-left: auto; }
+  .gh { margin-left: auto; color: var(--soft); }
+  .gh:hover { color: var(--ink); }
+  .gh svg { width: 1.05rem; fill: currentColor; stroke: none; }
   .iris { justify-content: flex-start; gap: 0.3rem; padding: 0 0.65rem; border-color: color-mix(in srgb, var(--k-club) 45%, transparent); background: color-mix(in srgb, var(--k-club) 9%, transparent); font-size: 0.8125rem; }
   .iris:hover { border-color: var(--k-club); background: color-mix(in srgb, var(--k-club) 16%, transparent); }
   .iris .label { overflow: hidden; text-overflow: ellipsis; }
@@ -444,8 +434,6 @@
 
 
   .n { color: var(--soft); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
-
-  .problem { grid-column: 1; margin: 0 0 0.875rem; padding-left: 0.75rem; border-left: 2px solid var(--margin); font-size: 0.875rem; }
 
   .layout { grid-column: 1; grid-row: 3; min-height: 0; display: grid; }
 

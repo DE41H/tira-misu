@@ -1,7 +1,6 @@
 <script lang="ts">
-  import type { ClientResponseError } from 'pocketbase';
   import { ALL, at, dayName, fmt, hours, istDay, kind, label, type Category, type Ev } from './lib/cal';
-  import { events, pb, toEv, why } from './lib/pb.svelte';
+  import { events, fail, pb, toEv } from './lib/pb.svelte';
 
   /** Called with the saved event, or with no event after a delete. */
   let { onchange }: { onchange: (id: string, row?: Ev) => void } = $props();
@@ -46,7 +45,7 @@
       onchange(row.id, row);
       dialog.close();
     } catch (err) {
-      error = why(err as ClientResponseError);
+      fail(err);
     } finally {
       busy = false;
     }
@@ -56,9 +55,9 @@
     if (!ev) return;
     busy = true;
     // Already gone (404) counts as deleted.
-    const failed = await events.delete(ev.id).then(() => false, (err: ClientResponseError) => err.status !== 404);
+    const failed = await events.delete(ev.id).then(() => false, (err) => err.status !== 404 && (fail(err, 'Could not delete this event. Try again.'), true));
     busy = false;
-    if (failed) return (error = 'Could not delete. Try again.');
+    if (failed) return;
     onchange(ev.id);
     dialog.close();
   }

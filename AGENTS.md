@@ -8,7 +8,8 @@ Keep this file up to date when you change structure, commands, env vars or statu
 ## Status
 
 - Done: Google sign-in, events CRUD (per-user collection rules), Iris Connect (`/api/invite`), week grid, Coming up, phone layout, browser cache of weeks.
-- Done: Iris mail sync, a cron every 5 min for all students in one transaction (`pb_hooks/sync.js`); the refresh button only reloads.
+- Done: Iris mail sync, a cron every 5 min for all students in one transaction (`pb_hooks/sync.js`).
+- Done: request errors show as slips in the bottom-right corner (`fail()` in `pb.svelte.ts`, `Toasts.svelte`); GitHub link in the header.
 - Not done: moving old Neon data over. No tests.
 
 ## Layout
@@ -31,8 +32,9 @@ backend/            the official PocketBase v0.40 executable (no Go): JS hooks +
                     users has no update rule: only the server writes it (OAuth, Iris linking)
   pb_public/        frontend build output (gitignored)
 frontend/           Svelte 5 + Vite SPA, PocketBase JS SDK only
-  src/Root.svelte   Welcome when signed out, lazy-loads App chunk when signed in
-  src/lib/pb.svelte.ts  SDK client, auth state, event queries, record -> Ev mapping
+  src/Root.svelte   Welcome when signed out, lazy-loads App chunk when signed in; mounts Toasts
+  src/Toasts.svelte error slips, a manual popover so they sit above the event dialog
+  src/lib/pb.svelte.ts  SDK client, auth state, event queries, record -> Ev mapping, error toasts
   src/lib/cal.ts    categories, Ev type, IST date helpers, grid layout
   src/lib/local.ts  safe localStorage
 .env                secrets (gitignored); .env.template lists the keys

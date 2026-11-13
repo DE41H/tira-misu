@@ -1,5 +1,6 @@
 <script lang="ts">
   import { auth } from './lib/pb.svelte';
+  import Toasts from './Toasts.svelte';
   import Welcome from './Welcome.svelte';
 </script>
 
@@ -11,3 +12,4 @@
 {:else}
   <Welcome />
 {/if}
+<Toasts />
