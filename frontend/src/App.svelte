@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { RecordModel } from 'pocketbase';
+  import type { ClientResponseError, RecordModel } from 'pocketbase';
   import { tick } from 'svelte';
   import { flip } from 'svelte/animate';
   import { fade } from 'svelte/transition';
@@ -177,11 +177,18 @@
       history.replaceState(null, '', location.pathname + location.hash);
       if (q.get('status') === 'accepted') {
         connecting = true;
-        pb.send<{ linked: boolean }>(`/api/invite/${encodeURIComponent(code)}`, { method: 'POST' }).catch(() => null).then((body) => {
-          connecting = false;
-          if (body?.linked) refreshUser();
-          else problem = 'Could not connect to Iris. Try connecting again.';
-        });
+        pb.send<{ linked: boolean }>(`/api/invite/${encodeURIComponent(code)}`, { method: 'POST' }).then(
+          (body) => {
+            connecting = false;
+            if (body.linked) refreshUser();
+            else problem = 'Could not connect to Iris. Try connecting again.';
+          },
+          // 400 (not your link) and 409 (Iris account taken) carry a message meant for the student.
+          (err: ClientResponseError) => {
+            connecting = false;
+            problem = err.status === 400 || err.status === 409 ? err.response.message : 'Could not connect to Iris. Try connecting again.';
+          },
+        );
       }
     }
   }
@@ -207,7 +214,7 @@
       </nav>
     </div>
     <div class="me">
-      {#if user.irisUser}
+      {#if user.irisId}
         <a class="btn iris" href={`${iris}/subscriptions/`} target="_blank" rel="noopener" title="Manage your subscription in Iris">
           <span class="label">Connected to Iris</span>
           <svg class="tick" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" /></svg>

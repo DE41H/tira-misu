@@ -7,7 +7,7 @@ export const pb = new PocketBase('/');
 // Stale responses are dropped by the caller, and the week and upcoming lists run at once.
 pb.autoCancellation(false);
 
-/** The signed-in student (name, email, avatar, irisUser), kept in step with the auth store. */
+/** The signed-in student (name, email, avatar, irisId), kept in step with the auth store. */
 export const auth = $state<{ user: RecordModel | null }>({ user: pb.authStore.record });
 pb.authStore.onChange(() => (auth.user = pb.authStore.record));
 
