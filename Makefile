@@ -1,11 +1,13 @@
-.PHONY: clean build serve
+.PHONY: clean build upgrade serve
 
 clean:
-	cd backend && go mod tidy
 	docker builder prune -f
 
 build:
 	docker build -f docker/Dockerfile --secret id=env,src=.env -o backend .
 
+upgrade:
+	docker build --no-cache -f docker/Dockerfile.upgrade -o backend/pb_hooks .
+
 serve:
-	cd backend && ./tira serve $(DOMAIN)
+	cd backend && set -a && { [ ! -f ../.env ] || . ../.env; } && set +a && ./pocketbase serve $(DOMAIN)
