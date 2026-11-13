@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   return {
     // Only the site address reaches the SPA (for the Iris links).
     define: { 'import.meta.env.IRIS_URL': JSON.stringify(env.IRIS_URL ?? '') },
-    // PocketBase serves this folder (see backend/hooks.go).
+    // PocketBase serves this folder (see backend/pb_hooks/web.pb.js).
     build: { outDir: '../backend/pb_public', emptyOutDir: true },
     // In dev, Vite serves the SPA and forwards API calls to PocketBase.
     server: { proxy: { '/api': 'http://127.0.0.1:8090' } },
