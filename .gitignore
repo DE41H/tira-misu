@@ -1,6 +1,7 @@
-.env
+.env*
 pb.log
 backend/pocketbase
 backend/pb_data/
 backend/pb_public/
 node_modules/
+!.env.template
