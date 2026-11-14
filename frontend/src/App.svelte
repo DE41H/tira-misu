@@ -36,7 +36,9 @@
   let events = $state<Ev[]>([]);
   let upcoming = $state(cached.upcoming);
   let loaded = $state(false);
-  const persist = () => write(key, { weeks: Object.fromEntries(weeks), upcoming });
+  // Only weeks within a month of this one are kept, so a year of browsing never fills localStorage.
+  const near = (w: string) => Math.abs(Date.parse(w) - Date.parse(monday(today))) <= 28 * 86_400_000;
+  const persist = () => write(key, { weeks: Object.fromEntries([...weeks].filter(([w]) => near(w))), upcoming });
 
   const hidden = new SvelteSet<Category>(read('hidden', HIDDEN_BY_DEFAULT));
   const shown = $derived(events.filter((e) => !hidden.has(e.category)));
@@ -102,6 +104,14 @@
   const IRIS_FAILED = 'Could not connect to Iris. Try connecting again.';
   go(start);
   loadUpcoming();
+
+  // A tab left open picks up what the mail sync stored meanwhile.
+  function refresh() {
+    if (document.visibilityState !== 'visible') return;
+    fresh.clear();
+    go(latest || week);
+    loadUpcoming();
+  }
 
   const range = $derived.by(() => {
     const [a, b] = [days[0], days[6]];
@@ -186,6 +196,7 @@
 </script>
 
 <svelte:window onkeydown={keys} />
+<svelte:document onvisibilitychange={refresh} />
 
 <div class="sheet">
   <header class="top">

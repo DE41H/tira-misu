@@ -42,16 +42,17 @@ export const events = pb.collection('events');
 const list = (filter: string, params: Record<string, unknown>) =>
   events.getFullList({ sort: 'start', filter: pb.filter(filter, params) }).then((rows) => rows.map(toEv));
 
+// Dates as Date objects: the SDK writes them as PocketBase stores them, which filters compare as text.
 /** Events touching the week that starts on `week`. */
 export const fetchWeek = (week: string) =>
-  list('start < {:to} && (start >= {:from} || end >= {:from})', { from: at(week), to: at(addDays(week, 7)) });
+  list('start < {:to} && (start >= {:from} || end >= {:from})', { from: new Date(at(week)), to: new Date(at(addDays(week, 7))) });
 
 /** Everything not over yet, up to the end of next week. */
 export const fetchUpcoming = (today: string) =>
   list('start < {:to} && (start >= {:now} || end >= {:now} || (allDay = true && start >= {:midnight}))', {
-    to: at(addDays(monday(today), 14)),
+    to: new Date(at(addDays(monday(today), 14))),
     now: new Date(),
-    midnight: at(today),
+    midnight: new Date(at(today)),
   });
 
 /** The message to show for a failed request: the first field error, or a connection problem. */

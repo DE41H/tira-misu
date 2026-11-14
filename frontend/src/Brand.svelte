@@ -1,4 +1,6 @@
-<script lang="ts"></script>
+<script lang="ts">
+  // Empty on purpose: without a TS script, svelte-check cannot type the imports of this component.
+</script>
 
 <p class="brand">
   <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 4v24" class="m" /><path d="M13 11h12M13 17h12M13 23h8" /></svg>

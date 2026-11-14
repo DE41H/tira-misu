@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ALL, at, dayName, fmt, hours, istDay, kind, label, type Category, type Ev } from './lib/cal';
+  import { addDays, ALL, at, dayName, fmt, hours, istDay, kind, label, type Category, type Ev } from './lib/cal';
   import { events, fail, pb, toEv } from './lib/pb.svelte';
 
   /** Called with the saved event, or with no event after a delete. */
@@ -9,7 +9,6 @@
   let ev = $state<Ev | null>(null);
   let editing = $state(false);
   let busy = $state(false);
-  let error = $state('');
 
   function blank(day: string, h = +hm(new Date()).slice(0, 2) % 24) {
     const start = `${String(h).padStart(2, '0')}:00`, end = h < 23 ? `${String(h + 1).padStart(2, '0')}:00` : '23:59';
@@ -17,29 +16,33 @@
   }
   const hm = (d: Date | string) => fmt(d, { hour: '2-digit', minute: '2-digit', hour12: false });
   let f = $state(blank(istDay(new Date())));
+  // The date and times as opened, so an edit that leaves them alone never rewrites start and end.
+  const when = () => JSON.stringify([f.day, f.allDay, f.start, f.end]);
+  let opened = '';
 
   /** Shows an event, or the empty form for a new one on `day`, starting at hour `h` (default: this hour). */
   export function open(e: Ev | null, day = istDay(new Date()), h?: number) {
     ev = e;
     editing = !e;
-    error = '';
     f = e
       ? { title: e.title, category: e.category, day: istDay(e.start), start: e.allDay ? '09:00' : hm(e.start), end: e.end && !e.allDay ? hm(e.end) : '',
           allDay: e.allDay, place: e.place ?? '', course: e.course ?? '', link: e.link ?? '', cancelled: e.cancelled }
       : blank(day, h);
+    opened = when();
     dialog.showModal();
   }
 
   async function save(submit: SubmitEvent) {
     submit.preventDefault();
-    if (!f.allDay && f.end && f.end < f.start) return (error = 'End must be after start.');
     busy = true;
-    error = '';
-    const data = {
+    const data: Record<string, unknown> = {
       title: f.title.trim(), category: f.category, place: f.place.trim(), course: f.course.trim(), link: f.link.trim(), allDay: f.allDay, cancelled: f.cancelled,
-      start: at(f.day, f.allDay ? '00:00' : f.start),
-      end: !f.allDay && f.end ? at(f.day, f.end) : '',
     };
+    if (!ev || when() !== opened) {
+      data.start = at(f.day, f.allDay ? '00:00' : f.start);
+      // An end before the start runs past midnight ("10 PM to 1 AM").
+      data.end = !f.allDay && f.end ? at(f.end < f.start ? addDays(f.day, 1) : f.day, f.end) : '';
+    }
     try {
       const row = toEv(ev ? await events.update(ev.id, data) : await events.create({ ...data, user: pb.authStore.record!.id, audience: 'me', manual: true }));
       onchange(row.id, row);
@@ -97,7 +100,7 @@
         </label>
         <label>
           <span>Ends</span>
-          <input type="time" bind:value={f.end} min={f.start} />
+          <input type="time" bind:value={f.end} />
         </label>
       {/if}
       <label class="wide">
@@ -114,7 +117,6 @@
           <span>Cancelled</span>
         </label>
       {/if}
-      {#if error}<p class="error wide" role="alert">{error}</p>{/if}
       <div class="actions wide">
         <button class="btn solid" disabled={busy} aria-busy={busy || undefined}>{ev ? 'Save changes' : 'Add event'}</button>
         <button type="button" class="btn" onclick={() => (ev ? (editing = false) : dialog.close())}>Cancel</button>
@@ -136,7 +138,6 @@
         {#if ev.place}<dt>Where</dt><dd>{ev.place}</dd>{/if}
         {#if ev.link}<dt>Link</dt><dd><a href={ev.link} target="_blank" rel="noopener">{new URL(ev.link).host}</a></dd>{/if}
       </dl>
-      {#if error}<p class="error" role="alert">{error}</p>{/if}
       <div class="actions">
         <button class="btn solid" onclick={() => (editing = true)}>Edit</button>
         <button class="btn danger" onclick={remove} disabled={busy} aria-busy={busy || undefined}>Delete</button>
@@ -221,6 +222,5 @@
   dt { color: var(--soft); font-size: 0.875rem; }
   dd { margin: 0; }
 
-  .error { margin: 0; color: var(--margin); font-size: 0.875rem; font-weight: 500; }
   .actions { display: flex; gap: 0.5rem; padding-top: 0.25rem; }
 </style>

@@ -38,13 +38,12 @@ routerAdd("POST", "/api/invite/{code}", (e) => {
   if (s.status !== "accepted" || !s.user) {
     return e.json(200, { linked: false });
   }
-  const user = e.app.findRecordById("users", e.auth.id);
-  if (e.app.findRecordsByFilter("users", "irisId = {:iris} && id != {:id}", "", 1, 0, { iris: s.user, id: user.id }).length) {
+  if (e.app.findRecordsByFilter("users", "irisId = {:iris} && id != {:id}", "", 1, 0, { iris: s.user, id: e.auth.id }).length) {
     throw new ApiError(409, "This Iris account already belongs to a Tira account.");
   }
-  if (!user.getString("irisId")) {
-    user.set("irisId", s.user);
-    e.app.save(user);
+  if (!e.auth.getString("irisId")) {
+    e.auth.set("irisId", s.user);
+    e.app.save(e.auth);
   }
   return e.json(200, { linked: true });
 }, $apis.requireAuth("users"));

@@ -20,7 +20,10 @@
   /** Hides a slip after a while; hovering or focusing it holds it. */
   function autohide(node: HTMLElement, id: number) {
     let t: ReturnType<typeof setTimeout>;
-    const run = () => (t = setTimeout(() => dismiss(id), 7000));
+    const run = () => {
+      clearTimeout(t);
+      t = setTimeout(() => dismiss(id), 7000);
+    };
     const hold = () => clearTimeout(t);
     const events = [['pointerenter', hold], ['focusin', hold], ['pointerleave', run], ['focusout', run]] as const;
     for (const [e, f] of events) node.addEventListener(e, f);
