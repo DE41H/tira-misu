@@ -6,12 +6,12 @@ From the repo audit of 2026-11-14. Numbers match the audit.
 
 - [x] **1. Monday events missing from the week, today's all-day events missing from Coming up** (`frontend/src/lib/pb.svelte.ts`)
   Dates went to the filter as `"…T00:00:00+05:30"` text; PocketBase compares them as text against `"… 04:30:00.000Z"`, so all of Monday fell out. Pass `Date` objects so the SDK writes PocketBase's format.
-- [ ] **2. Anyone can create a user and claim another student's Iris account** (`backend/pb_migrations/`)
-  `users.createRule` is the default `""`; an anonymous create with `irisId` saves, and the sync then hands that record the victim's mail events. New migration: `users.createRule = '@request.body.irisId:isset = false'`, then check Google sign-up still works.
+- [x] **2. Anyone can create a user and claim another student's Iris account** (`backend/pb_hooks/auth.pb.js`)
+  `users.createRule` is the default `""`; an anonymous create with `irisId` saves, and the sync then hands that record the victim's mail events. Fixed with an `onRecordCreate` hook in `auth.pb.js` that clears `irisId` on every new user instead of a create rule: it also covers OAuth2 `createData` and needs no migration.
 - [x] **3. Editing a mail event drops or blocks its end** (`frontend/src/EventDialog.svelte`)
   Saving a multi-day all-day event cleared `end`; an overnight event (22:00–01:00) could not be saved at all.
-- [ ] **4. "Changed" mails are ignored when the start stays the same, and leave a duplicate when it moves** (`backend/pb_hooks/sync.js` `storeEvents`)
-  Return `changed` from `parse`; on a key match with `changed`, update place/end/link/review. A moved date needs a title/course match, or at least `review`.
+- [x] **4. "Changed" mails are ignored when the start stays the same, and leave a duplicate when it moves** (`backend/pb_hooks/sync.js` `storeEvents`)
+  `parse` returns `changed`. A change at the same start updates time, place and link; a moved date finds the student's one upcoming mail event with the same category and title and moves it. Both set `review`. No unique title match: a new event, flagged `review`.
 
 ## Should fix
 
@@ -21,8 +21,8 @@ From the repo audit of 2026-11-14. Numbers match the audit.
   "20 Nov 10 AM to 22 Nov 5 PM" was saved as 20 Nov 10:00–17:00. The end now goes on chrono's end day (`lastDay`), and `norm` rewrites "date time - date time" to "time date - time date", which chrono reads right (it took "10 AM - 22" as 10 AM–10 PM).
 - [x] **7. Each sync loads every student's mail events** (`backend/pb_hooks/sync.js` `mailEvents`)
   Add `$dbx.in("user", ...new Set(rows.map((r) => r.user)))`.
-- [ ] **8. Results for not-yet-matched students are acked and lost** (`backend/pb_hooks/sync.js:29`)
-  Skip acking unknown users' results younger than a day.
+- [x] **8. Results for not-yet-matched students are acked and lost** (`backend/pb_hooks/sync.js:29`)
+  Results of unmatched students are acked only once they are a day old. Limit: they are fetched again each run meanwhile, inside the 15-page cap.
 - [x] **9. A tab left open never shows new events** (`frontend/src/App.svelte`)
   Refetch the shown week and Coming up when the tab becomes visible again.
 - [x] **10. Category list copied in four places** (`parse.js`, `cal.ts`, migration, `iris/plugin.json`)

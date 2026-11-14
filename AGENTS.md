@@ -32,13 +32,13 @@ The list of known bugs, risks and cleanups. All agents use it the same way:
 backend/            the official PocketBase v0.40 executable (no Go): JS hooks + JS migrations
   pocketbase        downloaded by `make build` (gitignored); bump PB_VERSION in docker/Dockerfile to upgrade
   pb_hooks/         *.pb.js register hooks; plain *.js are modules handlers require() (handlers run in isolated scopes)
-    auth.pb.js      Google OAuth from env
+    auth.pb.js      Google OAuth from env; new users never bring an irisId
     web.pb.js       serves pb_public (SPA fallback, asset caching)
     events.pb.js    event validation the schema can't express
     invite.pb.js    Iris Connect routes (/api/invite)
     sync.pb.js      irisSync cron, every 5 min
     iris.js         Iris API client + paging
-    sync.js         Iris sync: link/unlink students, parse results, dedupe + store, ack
+    sync.js         Iris sync: link/unlink students, parse results, dedupe + store, apply changes/cancels, ack (unmatched students' results wait a day)
     parse.js        Iris result -> event (dates via chrono, IST)
     chrono.js       chrono-node (en only), bundled and committed; `make upgrade` refreshes it
     iris/           the Iris plugin (schema.json + rules.json, for pasting into Iris); not loaded by PocketBase
