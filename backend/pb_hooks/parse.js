@@ -18,11 +18,13 @@ const NOISE = [/^by .+ - \w+day,/i, /^posted on /i, /^on .+\d{4} at \d/i, /^(dat
 const GREETING = /^(dear|hi|hello|greetings)\b/i;
 const MON = '(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*';
 const DAY = `\\d{1,2}(?:st|nd|rd|th)?`;
+const TIME = '\\d{1,2}(?::\\d{2})? ?[ap]\\.?m\\b\\.?|\\d{1,2}:\\d{2}';
 const norm = (s) => s
   .replace(/\s+/g, ' ')
   .replace(/\b([A-Za-z]{3,9})\.(?=\s*\d)/g, '$1')
   .replace(/\bsept\b/gi, 'Sep')
   .replace(/\b([01]\d|2[0-3])([0-5]\d)\s*hrs?\b/gi, '$1:$2')
+  .replace(new RegExp(`(${DAY} ${MON}),? (?:at )?(${TIME}) ?(?:to|till|until|-|–) ?(${DAY} ${MON}),? (?:at )?(${TIME})`, 'gi'), '$2 $1 - $4 $3')
   .replace(/\b([Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|May|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep|[Oo]ct|[Nn]ov|[Dd]ec)([a-z]*) (\d{1,2})(st|nd|rd|th)?\b(?!,? ?\d{4}| ?[-–])/g, '$3 $1$2')
   .replace(new RegExp(`\\bfrom (?=${DAY}(?: (?:to|till|until|-|–) ${DAY})? ${MON})`, 'gi'), 'on ')
   .replace(new RegExp(`(${DAY} ${MON}(?:,? \\d{4})?) (?:to|till|until) (?=${DAY} ${MON})`, 'gi'), '$1 - ');
