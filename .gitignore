@@ -6,3 +6,4 @@ backend/pb_public/
 node_modules/
 !.env.template
 .claude/
+test/mail/*.json
