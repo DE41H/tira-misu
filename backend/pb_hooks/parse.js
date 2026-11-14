@@ -2,9 +2,7 @@
 
 const chrono = require(`${__hooks}/chrono.js`);
 
-const CATEGORIES = ['class', 'exam', 'paper_distribution', 'deadline', 'talk', 'workshop', 'competition',
-  'recruitment', 'cultural', 'sports', 'meeting', 'campus_service', 'other_event'];
-const AUDIENCES = ['me', 'course', 'everyone'];
+const values = (field) => [...$app.findCollectionByNameOrId('events').fields.getByName(field).values];
 
 /**
  * @typedef {{ category?: string, change?: string, audience?: string, multiple?: boolean, title?: string | null,
@@ -76,6 +74,7 @@ function parse(output, time) {
   let clock = disagree ? null : hhmm(output.start);
   let stop = clock && hhmm(output.end);
   if (!clock && hit?.start.isCertain('hour')) [clock, stop] = [hm(hit.start), hit.end ? hm(hit.end) : null];
+  const lastDay = hit?.end ? day(hit.end) : date;
   if (!clock) {
     const times = (rules.time ?? []).filter((s) => !noise.some((n) => n.includes(norm(s))));
     const near = hit && times.find((s) => window.get(hit)?.includes(s));
@@ -83,10 +82,10 @@ function parse(output, time) {
     if (t) [clock, stop] = [hm(t.start), t.end ? hm(t.end) : null];
   }
   const start = at(date, ...(clock ?? [0, 0]));
-  let end = clock ? stop && at(date, ...stop) : hit?.end ? at(day(hit.end), 23, 59) : null;
-  if (clock && end && end < start) end = new Date(end.getTime() + 864e5); // "10 PM to 1 AM"
+  let end = clock ? stop && at(lastDay, ...stop) : hit?.end ? at(lastDay, 23, 59) : null;
+  if (clock && end && end < start) end = new Date(end.getTime() + 864e5);
   const course = clean(rules.course?.[0]?.replace(/[_-]/g, ' ').replace(/^([A-Z]+)(?=[FGH]\d)/, '$1 '));
-  const cat = pick(CATEGORIES, category, 'other_event');
+  const cat = pick(values('category'), category, 'other_event');
   const title = [output.title, rules.title?.[0]].map((t) => clean(t ?? undefined)).find((t) => t && !GREETING.test(t));
   const fallback = `${course ?? ''} ${cat === 'other_event' ? 'event' : cat.replace(/_/g, ' ')}`.trim();
   const link = clean(rules.link?.[0]);
@@ -96,7 +95,7 @@ function parse(output, time) {
   return {
     title: (title ?? fallback[0].toUpperCase() + fallback.slice(1)).slice(0, 200),
     category: cat,
-    audience: pick(AUDIENCES, output.audience, 'everyone'),
+    audience: pick(values('audience'), output.audience, 'everyone'),
     course: course?.slice(0, 32) ?? null,
     place: ((venue && !/https?:|meet link/i.test(venue) ? venue : null) ?? room ?? (link ? 'Online' : null))?.slice(0, 200) ?? null,
     link: link?.slice(0, 500) ?? null,
