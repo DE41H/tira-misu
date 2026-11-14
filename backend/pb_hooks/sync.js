@@ -126,12 +126,13 @@ function storeEvents(tx, rows) {
   return saved;
 }
 
-/** Returns the stored mail (non-manual) events between the rows' first and last start, by eventKey. */
+/** Returns the rows' students' stored mail (non-manual) events between the rows' first and last start, by eventKey. */
 function mailEvents(tx, rows) {
   const starts = rows.map((r) => r.start.getTime());
   const from = new Date(Math.min(...starts)), to = new Date(Math.max(...starts));
+  const users = [...new Set(rows.map((r) => r.user))];
   const known = {};
-  for (const e of tx.findAllRecords("events", $dbx.hashExp({ manual: false }), $dbx.between("start", pbDate(from), pbDate(to)))) {
+  for (const e of tx.findAllRecords("events", $dbx.in("user", ...users), $dbx.hashExp({ manual: false }), $dbx.between("start", pbDate(from), pbDate(to)))) {
     known[eventKey(e.getString("user"), e.getString("category"), e.getDateTime("start").time().unixMilli())] = e;
   }
   return known;
