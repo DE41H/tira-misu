@@ -40,6 +40,20 @@ From the repo audit of 2026-11-14. Numbers match the audit.
   Case 020: chrono hits more than 30 days before the mail are dropped.
 - [x] **18. "9th hour" is not a time** (`backend/pb_hooks/parse.js`)
   Case 011: fixed in `iris/schema.json` (the LLM is told hour N starts at N+7 o'clock and lasts 50 minutes), since no rule captures "9th hour" and the parser only sees rule matches. Needs the schema pasted into Iris again.
+- [ ] **19. Any time in the mail becomes the start of an all-day event** (`backend/pb_hooks/parse.js`, the `rules.time` fallback)
+  Cases 083, 140, 155–157, 164, 171, 175, 184, 189, 224, 252, 295, 301, 307: the LLM gives no start, so the parser takes the first time anywhere in the mail: office hours (083), "signings today from 8:30 PM" (301), daily hours of a multi-day fest (155). Fix: no rule time when the LLM gave no start, or at least only a time from the hit's own `when` window.
+- [ ] **20. A sign-up form link makes the place "Online"** (`backend/pb_hooks/parse.js` `place`)
+  Cases 064, 075, 082, 100, 124, 213: a Google Form link gives place "Online" for an event with no place, or one in person. Fix: "Online" only for meeting links (meet, zoom, teams, webex).
+- [ ] **21. A place from the rules overrides the LLM's "no venue"** (`backend/pb_hooks/parse.js` `venue`, `room`)
+  Cases 117, 166, 222, 248, 280, 309, 324: `rules.venue`/`rules.room` fill in a place when the LLM said none: "Shankar Bhawan" (a hostel whose rep is elected) for a nomination deadline, "IIT Bombay" (the finale) for a registration deadline. Fix: use rule places only when the LLM gave a start time, or drop the fallback.
+- [ ] **22. Daily hours over a day range become one long span** (`backend/pb_hooks/parse.js` `lastDay`)
+  Case 174: "30th & 31st Oct", "5:00 PM – 8:00 PM (Both Days)", LLM 30 Oct 17:00–20:00 with `multiple` → saved 30 Oct 17:00 to 31 Oct 20:00. Fix: when the LLM gives start and end, end on the start's day (or the LLM's day) unless the LLM's end is before its start.
+- [ ] **23. A changed date the rules missed loses to an old date** (`backend/pb_hooks/parse.js` `disagree`)
+  Case 268: polling moved "to 21st October 2026 (Wednesday), in the evening"; no `when` hit has 21 Oct, so the last hit (18 Oct, the silence period) wins over the LLM's 21 Oct. Fix: on a disagreement, prefer the LLM's date when it appears anywhere in the mail text, or at least for `changed`.
+- [ ] **24. "16th to 18th October" loses its end** (`backend/pb_hooks/parse.js` `norm`)
+  Case 275: "from 16th to 18th October" → one day, 16 Oct. The `from` rewrite makes "on 16th to 18th October", which chrono does not read as a range. Fix: rewrite "D to D Mon" to "D - D Mon" like "D and D Mon".
+- [ ] **25. Dotted dates "22.10.2026" are not read** (`backend/pb_hooks/parse.js` `norm`)
+  Case 306: "T7 to T12 - 22.10.2026 / T1 to T6 - 27.10.2026" → 27 Oct 06:00 timed, instead of 22 Oct all-day. Fix: `norm` turns dd.mm.yyyy into "dd Mon yyyy" (as it would dd/mm and dd-mm, cases 240, 244, 279, 285).
 
 ## Nice to have
 
