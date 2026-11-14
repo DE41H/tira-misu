@@ -12,3 +12,8 @@ onBootstrap((e) => {
   users.oauth2.providers = [{ name: "google", clientId: id, clientSecret: secret }];
   e.app.save(users);
 });
+
+onRecordCreate((e) => {
+  e.record.set("irisId", "");
+  e.next();
+}, "users");
