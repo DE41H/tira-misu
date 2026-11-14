@@ -41,7 +41,7 @@ backend/            the official PocketBase v0.40 executable (no Go): JS hooks +
     sync.js         Iris sync: link/unlink students, parse results, dedupe + store, ack
     parse.js        Iris result -> event (dates via chrono, IST)
     chrono.js       chrono-node (en only), bundled and committed; `make upgrade` refreshes it
-    iris/           the Iris plugin (plugin.json = schema.json + rules.json, for pasting into Iris); not loaded by PocketBase
+    iris/           the Iris plugin (schema.json + rules.json, for pasting into Iris); not loaded by PocketBase
   pb_migrations/    JS migrations = collection schema (users.irisId, events.irisId); dashboard edits auto-generate new ones
                     users has no update rule: only the server writes it (OAuth, Iris linking)
   pb_public/        frontend build output (gitignored)

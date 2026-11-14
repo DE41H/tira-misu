@@ -49,7 +49,7 @@ Iris reads new mail and answers a fixed set of questions about it (category, tit
 - Dates and times are resolved in **IST** with [chrono](https://github.com/wanasit/chrono), cross-checked against the LLM's answer.
 - Results are deduplicated, stored as events, then acknowledged so Iris doesn't send them again.
 
-The plugin definition lives in [`backend/pb_hooks/iris/plugin.json`](backend/pb_hooks/iris/plugin.json), ready to paste into Iris.
+The plugin definition lives in [`backend/pb_hooks/iris/`](backend/pb_hooks/iris/): `schema.json` (the questions) and `rules.json` (the regex rules), ready to paste into Iris.
 
 ## Run it
 
