@@ -11,6 +11,20 @@ Keep this file up to date when you change structure, commands, env vars or statu
 - Done: Iris mail sync, a cron every 5 min for all students in one transaction (`pb_hooks/sync.js`).
 - Done: request errors show as slips in the bottom-right corner (`fail()` in `pb.svelte.ts`, `Toasts.svelte`); GitHub link in the header.
 - Not done: moving old Neon data over. No tests.
+- Known bugs and cleanups: `TODO.md`.
+
+## TODO.md
+
+The list of known bugs, risks and cleanups. All agents use it the same way:
+
+- Read it before starting. If your task touches an open item, say so, and fix it only if asked.
+- One item: `- [ ] **N. Short title** (path)`, then one indented line with the concrete case (what input or state goes wrong) and the planned fix.
+- File it under `Must fix` (bug, security, data loss), `Should fix` (risk, missing test, slowness, duplication) or `Nice to have`.
+- Numbers never change: a new item takes the next number, even in another section. People refer to items by number.
+- Found a bug you are not fixing? Add it instead of fixing it out of scope. No case, no item.
+- Fixed one? Tick it (`[x]`) in the same change as the fix. Don't delete ticked items; the user prunes them.
+- Fixed only part of one? Leave it open and rewrite its line to say what is left.
+- Not a problem after all, or not worth fixing? Tick it and add `Won't fix: <why>`.
 
 ## Layout
 
@@ -38,6 +52,7 @@ frontend/           Svelte 5 + Vite SPA, PocketBase JS SDK only
   src/lib/cal.ts    categories, Ev type, IST date helpers, grid layout
   src/lib/local.ts  safe localStorage
 .env                secrets (gitignored); .env.template lists the keys
+TODO.md             known bugs and cleanups, numbered (rules in "TODO.md" above)
 ```
 
 ## Run
