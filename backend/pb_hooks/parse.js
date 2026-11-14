@@ -9,7 +9,7 @@ const values = (field) => [...$app.findCollectionByNameOrId('events').fields.get
  *   venue?: string | null, date?: string | null, start?: string | number | null, end?: string | number | null,
  *   rules?: Record<string, string[]> }} Output
  * @typedef {{ title: string, category: string, audience: string, course: string | null, place: string | null,
- *   link: string | null, start: Date, end: Date | null, allDay: boolean, cancelled: boolean, review: boolean }} Parsed
+ *   link: string | null, start: Date, end: Date | null, allDay: boolean, cancelled: boolean, changed: boolean, review: boolean }} Parsed
  * @typedef {{ y: number, m: number, d: number }} Day
  */
 
@@ -105,6 +105,7 @@ function parse(output, time) {
     end: end && end > start ? end : null,
     allDay: !clock,
     cancelled: output.change === 'cancelled',
+    changed: output.change === 'changed',
     review: output.multiple === true || output.change === 'changed' || disagree,
   };
 }
