@@ -15,8 +15,8 @@ From the repo audit of 2026-11-14. Numbers match the audit.
 
 ## Should fix
 
-- [ ] **5. Parser mangles "20 Nov 10 AM"** (`backend/pb_hooks/parse.js:27`)
-  Test added (`node test/test.js`, 59 real mails). Left: `norm` still swaps the "Nov 10" inside "20 Nov 10 AM" into "20 10 Nov AM"; without an LLM date the result is dropped and acked. Add `(?<!\d(?:st|nd|rd|th)? )` before the month, and a mail case for it (none of the 59 hits it).
+- [x] **5. Parser mangles "20 Nov 10 AM"** (`backend/pb_hooks/parse.js:27`)
+  Test added (`node test/test.js`, 60 cases; 060 is this one, made up). `norm` leaves a month alone when a day comes before it (a replace callback, not a lookbehind).
 - [x] **6. Multi-day timed events lose their last days** (`backend/pb_hooks/parse.js`)
   "20 Nov 10 AM to 22 Nov 5 PM" was saved as 20 Nov 10:00–17:00. The end now goes on chrono's end day (`lastDay`), and `norm` rewrites "date time - date time" to "time date - time date", which chrono reads right (it took "10 AM - 22" as 10 AM–10 PM).
 - [x] **7. Each sync loads every student's mail events** (`backend/pb_hooks/sync.js` `mailEvents`)
@@ -30,16 +30,16 @@ From the repo audit of 2026-11-14. Numbers match the audit.
 - [x] **11. `iris/schema.json` and `iris/rules.json` duplicate `plugin.json`**
   Deleted `plugin.json` instead; `schema.json` and `rules.json` are the plugin now (README and `AGENTS.md` updated).
 
-- [ ] **14. A time with no date drops the event** (`backend/pb_hooks/parse.js`)
-  Case 035: "power cut from 11.00 am to 12.30 pm", no date anywhere; parse returns null and the result is acked. Use the mail's own day when only a time is given.
-- [ ] **15. "Open till 2 PM" becomes a 2 PM start** (`backend/pb_hooks/parse.js`)
-  Cases 034, 054: the LLM gives only `end`, `start` is null, so the time rule's "2.00 PM" is used as the start. When the LLM gave an end but no start, don't fall back to the time rules.
-- [ ] **16. Day ranges lose their end** (`backend/pb_hooks/parse.js` `norm`)
-  Case 033 "19th and 20th November" starts on the 20th with no end; case 045 "*30** October 2026 to 02 November 2026" has no end (the `*` breaks the range, `clean` isn't applied before chrono); case 025 "from the morning of 15th Nov ... till 11am on 18th Nov" lands on the mail's own date line. Strip `*` in `norm`, rewrite "D and D Mon" to "D - D Mon".
-- [ ] **17. A wrong year in the mail puts the event years back** (`backend/pb_hooks/parse.js`)
-  Case 020: "2-11-2023" in a 2026 mail is saved on 2 Nov 2023. Drop chrono hits more than a month in the past, like `ymd` does for the LLM date.
-- [ ] **18. "9th hour" is not a time** (`backend/pb_hooks/parse.js`)
-  Case 011: a class "in the 9th hour" is saved all-day. BITS hours: hour N starts at (N+7):00 for N ≤ 10; map "Nth hour" before chrono.
+- [x] **14. A time with no date drops the event** (`backend/pb_hooks/parse.js`)
+  Case 035: one LLM start time and no date anywhere now goes on the mail's own day, flagged `review`. Not for schedules (`multiple`), like case 007's exam slots.
+- [x] **15. "Open till 2 PM" becomes a 2 PM start** (`backend/pb_hooks/parse.js`)
+  Cases 034, 054: when the LLM gives an end and no start, the mail's times are not used as a start; the event is all-day.
+- [x] **16. Day ranges lose their end** (`backend/pb_hooks/parse.js` `norm`)
+  Cases 025, 033, 045: `norm` drops `*`, rewrites "D and D Mon" to "D - D Mon", and turns "from 15-18 Nov" (no spaces) into "on", so chrono no longer reads it as 15:00–18:00.
+- [x] **17. A wrong year in the mail puts the event years back** (`backend/pb_hooks/parse.js`)
+  Case 020: chrono hits more than 30 days before the mail are dropped.
+- [x] **18. "9th hour" is not a time** (`backend/pb_hooks/parse.js`)
+  Case 011: fixed in `iris/schema.json` (the LLM is told hour N starts at N+7 o'clock and lasts 50 minutes), since no rule captures "9th hour" and the parser only sees rule matches. Needs the schema pasted into Iris again.
 
 ## Nice to have
 

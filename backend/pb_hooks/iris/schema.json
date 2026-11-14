@@ -64,13 +64,13 @@
       "type": "string",
       "format": "time",
       "nullable": true,
-      "description": "Start time on a 24-hour clock, like 09:30:00 or 17:00:00. For a deadline, the due time. If changed, the new time. Null if no time is given."
+      "description": "Start time on a 24-hour clock, like 09:30:00 or 17:00:00. For a deadline, the due time. If changed, the new time. A class hour N (like '9th hour') starts at N+7 o'clock: 1st hour 08:00, 9th hour 16:00. Null if no time is given."
     },
     "end": {
       "type": "string",
       "format": "time",
       "nullable": true,
-      "description": "End time on a 24-hour clock, like 17:00:00. Null if no end time is given."
+      "description": "End time on a 24-hour clock, like 17:00:00. A class hour ends 50 minutes after it starts. Null if no end time is given."
     }
   }
 }

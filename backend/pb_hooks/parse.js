@@ -20,13 +20,15 @@ const MON = '(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*';
 const DAY = `\\d{1,2}(?:st|nd|rd|th)?`;
 const TIME = '\\d{1,2}(?::\\d{2})? ?[ap]\\.?m\\b\\.?|\\d{1,2}:\\d{2}';
 const norm = (s) => s
-  .replace(/\s+/g, ' ')
+  .replace(/[*\s]+/g, ' ')
   .replace(/\b([A-Za-z]{3,9})\.(?=\s*\d)/g, '$1')
   .replace(/\bsept\b/gi, 'Sep')
   .replace(/\b([01]\d|2[0-3])([0-5]\d)\s*hrs?\b/gi, '$1:$2')
   .replace(new RegExp(`(${DAY} ${MON}),? (?:at )?(${TIME}) ?(?:to|till|until|-|–) ?(${DAY} ${MON}),? (?:at )?(${TIME})`, 'gi'), '$2 $1 - $4 $3')
-  .replace(/\b([Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|May|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep|[Oo]ct|[Nn]ov|[Dd]ec)([a-z]*) (\d{1,2})(st|nd|rd|th)?\b(?!,? ?\d{4}| ?[-–])/g, '$3 $1$2')
-  .replace(new RegExp(`\\bfrom (?=${DAY}(?: (?:to|till|until|-|–) ${DAY})? ${MON})`, 'gi'), 'on ')
+  .replace(/(\b\d{1,2}(?:st|nd|rd|th)? )?\b([Jj]an|[Ff]eb|[Mm]ar|[Aa]pr|May|[Jj]un|[Jj]ul|[Aa]ug|[Ss]ep|[Oo]ct|[Nn]ov|[Dd]ec)([a-z]*) (\d{1,2})(st|nd|rd|th)?\b(?!,? ?\d{4}| ?[-–])/g,
+    (all, before, mon, rest, d) => (before ? all : `${d} ${mon}${rest}`)) // "20 Nov 10 AM": already day first
+  .replace(new RegExp(`\\b(${DAY}) (?:and|&) (?=${DAY} ${MON})`, 'gi'), '$1 - ')
+  .replace(new RegExp(`\\bfrom (?=${DAY}(?: ?(?:to|till|until|-|–) ?${DAY})? ${MON})`, 'gi'), 'on ')
   .replace(new RegExp(`(${DAY} ${MON}(?:,? \\d{4})?) (?:to|till|until) (?=${DAY} ${MON})`, 'gi'), '$1 - ');
 const clean = (s) => s?.replace(/[*\t]/g, ' ').replace(/\s+/g, ' ').trim() || null;
 /** @returns {Day} */
@@ -62,22 +64,26 @@ function parse(output, time) {
   const window = new Map();
   const found = windows.filter((w) => !NOISE.some((r) => r.test(w)))
     .flatMap((w) => read(w).map((r) => (window.set(r, w), r)))
-    .filter((r) => r.start.isCertain('year') || r.start.date().getTime() - ref.instant.getTime() < 240 * 864e5);
+    .filter((r) => r.start.isCertain('year') || r.start.date().getTime() - ref.instant.getTime() < 240 * 864e5)
+    .filter((r) => r.start.date().getTime() >= ref.instant.getTime() - 30 * 864e5); // a typo year, like 2023 in a 2026 mail
   const days = found.filter((r) => r.start.isCertain('day'));
   const dates = days.length ? days : found.filter((r) => r.start.isCertain('weekday'));
   const guess = output.change === 'changed' ? dates[dates.length - 1] : dates[0];
   const said = ymd(output.date, ref.instant);
   const agreed = said && days.find((r) => r.start.get('month') === said.m && r.start.get('day') === said.d);
   const hit = agreed || (days.length || !said ? guess : undefined);
-  const date = hit ? day(hit.start) : said;
+  const sent = new Date(ref.instant.getTime() + IST * 60000);
+  const today = !hit && !said && !output.multiple && hhmm(output.start) ? { y: sent.getUTCFullYear(), m: sent.getUTCMonth() + 1, d: sent.getUTCDate() } : null;
+  const date = hit ? day(hit.start) : said ?? today;
   if (!date) return null;
   const disagree = !!said && !!days.length && !agreed;
+  const endOnly = !disagree && !hhmm(output.start) && !!hhmm(output.end);
   const hm = (c) => [c.get('hour'), c.get('minute')];
   let clock = disagree ? null : hhmm(output.start);
   let stop = clock && hhmm(output.end);
-  if (!clock && hit?.start.isCertain('hour')) [clock, stop] = [hm(hit.start), hit.end ? hm(hit.end) : null];
+  if (!clock && !endOnly && hit?.start.isCertain('hour')) [clock, stop] = [hm(hit.start), hit.end ? hm(hit.end) : null];
   const lastDay = hit?.end ? day(hit.end) : date;
-  if (!clock) {
+  if (!clock && !endOnly) {
     const times = (rules.time ?? []).filter((s) => !noise.some((n) => n.includes(norm(s))));
     const near = hit && times.find((s) => window.get(hit)?.includes(s));
     const t = (near ? [near, ...times] : times).flatMap(read)[0];
@@ -106,7 +112,7 @@ function parse(output, time) {
     allDay: !clock,
     cancelled: output.change === 'cancelled',
     changed: output.change === 'changed',
-    review: output.multiple === true || output.change === 'changed' || disagree,
+    review: output.multiple === true || output.change === 'changed' || disagree || !!today,
   };
 }
 
