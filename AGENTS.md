@@ -10,7 +10,7 @@ Keep this file up to date when you change structure, commands, env vars or statu
 - Done: Google sign-in, events CRUD (per-user collection rules), Iris Connect (`/api/invite`), week grid, Coming up, phone layout, browser cache of weeks.
 - Done: Iris mail sync, a cron every 5 min for all students in one transaction (`pb_hooks/sync.js`).
 - Done: request errors show as slips in the bottom-right corner (`fail()` in `pb.svelte.ts`, `Toasts.svelte`); GitHub link in the header.
-- Not done: moving old Neon data over. No tests.
+- Not done: moving old Neon data over. Tests: parser only (`test/`).
 - Known bugs and cleanups: `TODO.md`.
 
 ## TODO.md
@@ -51,6 +51,7 @@ frontend/           Svelte 5 + Vite SPA, PocketBase JS SDK only
   src/lib/pb.svelte.ts  SDK client, auth state, event queries, record -> Ev mapping, error toasts
   src/lib/cal.ts    categories, Ev type, IST date helpers, grid layout
   src/lib/local.ts  safe localStorage
+test/               parser test: node test/test.js runs test/mail/NNN.json (real mails, gitignored) through parse.js
 .env                secrets (gitignored); .env.template lists the keys
 TODO.md             known bugs and cleanups, numbered (rules in "TODO.md" above)
 ```
@@ -61,6 +62,7 @@ TODO.md             known bugs and cleanups, numbered (rules in "TODO.md" above)
 make build     # Docker fetches backend/pocketbase, builds backend/pb_public (needs only Docker)
 make serve     # loads .env, runs backend/pocketbase on :8090 (DOMAIN=x: HTTPS on :443); dashboard at /_/
 make clean     # prune Docker build cache
+node test/test.js  # parser vs test/mail/*.json; prints N/M correct and the failed numbers
 make upgrade   # Docker re-bundles pb_hooks/chrono.js from the latest chrono-node (docker/Dockerfile.upgrade)
 ```
 

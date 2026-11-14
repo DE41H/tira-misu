@@ -21,12 +21,13 @@ function run() {
   const results = irisList("/results/?fetched=false").items;
   results.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
 
-  let saved = 0;
+  let saved = 0, owner = {};
   $app.runInTransaction((tx) => {
-    const owner = linkStudents(tx, subs.items, subs.done, results);
+    owner = linkStudents(tx, subs.items, subs.done, results);
     saved = storeEvents(tx, parseResults(tx, results, owner));
   });
-  ackResults(results);
+  const dayAgo = Date.now() - 864e5;
+  ackResults(results.filter((r) => owner[r.user] || !(Date.parse(r.time) >= dayAgo)));
   if (results.length) {
     $app.logger().info("iris sync", "results", results.length, "events", saved);
   }
@@ -85,22 +86,33 @@ function parseResults(tx, results, owner) {
 
 const eventKey = (user, category, startMs) => `${user}|${category}|${startMs}`;
 const pbDate = (d) => d.toISOString().replace("T", " ");
+const keyOf = (e) => eventKey(e.getString("user"), e.getString("category"), e.getDateTime("start").time().unixMilli());
 
-/** Saves new events and marks known ones cancelled; a repeat of a known event is a reminder and skipped. */
+/**
+ * Saves new events, marks known ones cancelled and applies changes to them; a repeat of a known event is a reminder
+ * and skipped. A known event is one at the same student, category and start, or for a change, the student's one
+ * upcoming mail event with the same category and title (the change moved it).
+ */
 function storeEvents(tx, rows) {
   if (!rows.length) return 0;
   const known = mailEvents(tx, rows);
   const stored = new Set(tx.findAllRecords("events", $dbx.in("irisId", ...rows.map((r) => r.irisId))).map((e) => e.getString("irisId")));
   const col = tx.findCollectionByNameOrId("events");
-  const save = [];
+  const save = new Set();
   for (const r of rows) {
     if (stored.has(r.irisId)) continue;
     const k = eventKey(r.user, r.category, r.start.getTime());
-    const e = known[k];
+    const e = known[k] ?? (r.changed ? movedEvent(tx, r, known) : null);
     if (e) {
-      if (r.cancelled && !e.getBool("cancelled")) {
+      if (r.changed) {
+        const moved = e !== known[k];
+        delete known[keyOf(e)];
+        applyChange(e, r, moved);
+        known[k] = e;
+        save.add(e);
+      } else if (r.cancelled && !e.getBool("cancelled")) {
         e.set("cancelled", true);
-        save.push(e);
+        save.add(e);
       }
       continue;
     }
@@ -112,7 +124,7 @@ function storeEvents(tx, rows) {
     });
     if (r.end) rec.set("end", pbDate(r.end));
     known[k] = rec;
-    save.push(rec);
+    save.add(rec);
   }
   let saved = 0;
   for (const e of save) {
@@ -126,6 +138,32 @@ function storeEvents(tx, rows) {
   return saved;
 }
 
+/**
+ * The student's one upcoming, not cancelled mail event with the row's category and title, or null.
+ * Uses the copy this batch already holds (maybe changed, or not saved yet), so one save never undoes another.
+ */
+function movedEvent(tx, r, known) {
+  const held = Object.values(known);
+  const byId = new Map(held.filter((e) => !e.isNew()).map((e) => [e.id, e]));
+  const found = [
+    ...tx.findAllRecords("events",
+      $dbx.hashExp({ user: r.user, category: r.category, title: r.title, manual: false, cancelled: false }),
+      $dbx.exp("start >= {:now}", { now: pbDate(new Date()) })).map((e) => byId.get(e.id) ?? e),
+    ...held.filter((e) => e.isNew() && e.getString("user") === r.user && e.getString("category") === r.category && e.getString("title") === r.title),
+  ];
+  return found.length === 1 ? found[0] : null;
+}
+
+/** Puts a "changed" mail on its event: the new time, and the new place and link when the mail gives them. */
+function applyChange(e, r, moved) {
+  e.set("start", pbDate(r.start));
+  if (r.end || moved) e.set("end", r.end ? pbDate(r.end) : "");
+  e.set("allDay", r.allDay);
+  if (r.place) e.set("place", r.place);
+  if (r.link) e.set("link", r.link);
+  e.set("review", true);
+}
+
 /** Returns the rows' students' stored mail (non-manual) events between the rows' first and last start, by eventKey. */
 function mailEvents(tx, rows) {
   const starts = rows.map((r) => r.start.getTime());
@@ -133,7 +171,7 @@ function mailEvents(tx, rows) {
   const users = [...new Set(rows.map((r) => r.user))];
   const known = {};
   for (const e of tx.findAllRecords("events", $dbx.in("user", ...users), $dbx.hashExp({ manual: false }), $dbx.between("start", pbDate(from), pbDate(to)))) {
-    known[eventKey(e.getString("user"), e.getString("category"), e.getDateTime("start").time().unixMilli())] = e;
+    known[keyOf(e)] = e;
   }
   return known;
 }
